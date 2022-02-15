@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 
@@ -26,6 +26,12 @@ def standarize(df,features):
     df[features] = scaler.fit_transform(df[features])
     return df
 
+def pca(df,features,dimentions=3):
+    """Applying Principle Component Analysis to reduce our dimentions to 3"""
+    pca = PCA(n_components=dimentions)
+    pca = pca.fit(df[features])
+    pca_features = pca.transform(df[features])
+    return pd.DataFrame(pca_features)
 
 if __name__ == "__main__":
 
@@ -83,7 +89,13 @@ if __name__ == "__main__":
     df_stand = standarize(df,numerical_attr).copy()
     print('DONE')
 
+    print('\n--Applying Principle Component Analysis to get an instance of our data set in 3 dimensions--')
+    df_pca = pca(df_norm,numerical_attr,dimentions=3)
+    df_pca.rename(columns={0:'PCA_1',1:'PCA_2',2:'PCA_3'}, inplace=True)
+    print('PCA completed successfully!')
+
     print('\n--Exporting csv files--')
-    df_norm.to_csv('./housing_normalized.csv')
-    df_stand.to_csv('./housing_standarized.csv')
+    df_norm.to_csv('./housing_normalized.csv',index=False)
+    df_stand.to_csv('./housing_standarized.csv',index=False)
+    df_pca.to_csv('./housing_PCA.csv',index=False)
     print('Exporting completed successfully!')
