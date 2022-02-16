@@ -71,6 +71,9 @@ if __name__ == "__main__":
 
     """HANDLING NUMEIRICAL DATA"""
     print("\n-----Processing numerical data-----")
+
+    y_value = 'median_house_value'
+
     #replacing empty records with the attribute's median value
     for col in numerical_attr:
         na_values = df[col].isna().sum()
@@ -90,8 +93,11 @@ if __name__ == "__main__":
     print('DONE')
 
     print('\n--Applying Principle Component Analysis to get an instance of our data set in 3 dimensions--')
-    df_pca = pca(df_norm,numerical_attr,dimentions=3)
+    pca_features = df_norm.drop(columns=[y_value])
+    df_pca = pca(pca_features,pca_features.columns,dimentions=3)
     df_pca.rename(columns={0:'PCA_1',1:'PCA_2',2:'PCA_3'}, inplace=True)
+    df_pca['median_house_value'] = df['median_house_value']
+    df_pca = normalize(df_pca,df_pca.columns).copy()
     print('PCA completed successfully!')
 
     print('\n--Exporting csv files--')
