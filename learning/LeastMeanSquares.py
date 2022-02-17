@@ -4,9 +4,10 @@ import matplotlib.pyplot as plt
 plt.style.use('seaborn-whitegrid')
 import pandas as pd
 
+
 DATA_PATH = '../preprocess/housing_normalized.csv'
 
-def scatter(data,batch_size,learning_rate,fold='',categ='',plot=True, save=False):
+def scatter(data,fold='',categ='',plot=True, save=False):
     path = './MSE_Graphs'
     if fold:
         path+='/Fold {}'.format(fold)
@@ -19,7 +20,7 @@ def scatter(data,batch_size,learning_rate,fold='',categ='',plot=True, save=False
     ax = fig.add_subplot(111)
     title = 'Gradient Descent Convergence'
     title += ' for Fold: {}'.format(fold) if fold else ''
-    title += '\n\nbatch_size:{}, learning_rate:{}, MSE:{:.4f}'.format(batch_size,learning_rate,min(data))
+    title += '\n\nMSE:{:.4f}'.format(min(data))
     ax.scatter(list(range(0,len(data))),data, edgecolor='black')
     ax.set_title(title)
     ax.set_xlabel('Num of Iterations')
@@ -27,7 +28,7 @@ def scatter(data,batch_size,learning_rate,fold='',categ='',plot=True, save=False
     ax.set_yticks(np.arange(0,max(data),0.1))
 
     if save:
-        graph_name = '/{} L_R={} BATCH={}'.format(categ,batch_size,learning_rate)
+        graph_name = '/{}'.format(categ)
         print('Saving convergence graph..')
         plt.savefig(path+graph_name,format='jpg')
         print('Saved!')
@@ -55,39 +56,36 @@ def k_fold_cross_validation(all_inputs,k_fold):
                     training_set[fold] += all_inputs[m:m+each_fold]
     return np.array(training_set),np.array(testing_set)
 
-def hypothesis_fun(x,w):
+def hypothesis(x,w):
     return np.dot(x,w)
 
-def MSE(x,y,w):
-    return np.sum((y-hypothesis_fun(x,w))**2)/len(x)
-
-def squared_error_derivative(x,y,w):
-    hypothesis_sumed = hypothesis_fun(x,w)
-    ch_rule1 = y-hypothesis_sumed
-    weights_derivative = np.dot(x.T,ch_rule1)
-    return weights_derivative
-
-
-def GradientDescent(x,y,w,learning_rate,batch_size,max_iter,max_conv):
-    variable_converge = [False]*len(x)
-    curr_iter = 0
-    start = 0
+def robbins_monro(x,y,w,min_learning):
+    num_data = len(x)
+    learning_rate = 0.1
     convergence = []
-    while curr_iter < max_iter and not all(variable_converge):
-        convergence.append(MSE(x,y,w))
-        stop = start+batch_size if start+batch_size<len(x) else start+len(x)-start
-        w_der = np.multiply(squared_error_derivative(x[start:stop],y[start:stop],w),-2/(stop-start))
-        step_sizes = w_der * learning_rate
-        w = w - step_sizes
-        variable_converge = (w <= max_conv)
-        curr_iter += 1
-        start = 0 if stop==len(x) else stop
+    iter = 0
+    for set in range(1,num_data):
+        if(learning_rate <= min_learning):
+            return w
+        else:
+            if(iter == 100):
+                convergence.append(MSE(x[1:set],y[1:set],w))
+                iter = 0
+            learning_rate = learning_rate/set #+0.001 makes algorithm converge a little bit better
+            print(learning_rate)
+            J = y-hypothesis(x,w)
+            step = np.multiply(J,learning_rate)
+            w = w + step[set]
+            iter += 1
     return w, convergence
 
-def train(x,y,learning_rate=0.001,batch_size=100,max_iter=1000,max_conv=0.001):
+def MSE(x,y,w):
+    return np.sum((y-hypothesis(x,w))**2)/len(x)
+
+def train(x,y,min_learning=0.000001):
     #Initializing random weights
-    w = np.random.rand(len(x.T))
-    w,convergence = GradientDescent(x,y,w,learning_rate,batch_size,max_iter,max_conv)
+    w = np.zeros(len(x.T))
+    w,convergence = robbins_monro(x,y,w,min_learning)
     return w, convergence
 
 def predict(x,w):
@@ -99,6 +97,9 @@ def test(x,y,w,print=False):
         for i,result in enumerate(results):
             print('Observed value: {:.4f} | Predicted vale" {:.4f}'.format(y[i],result))
     return results, MSE(x,y,w)
+
+
+
 
 if __name__ == '__main__':
 
@@ -120,101 +121,22 @@ if __name__ == '__main__':
     x_training_set,x_testing_set = k_fold_cross_validation(list(x),k)
     y_training_set,y_testing_set = k_fold_cross_validation(list(y),k)
 
-    learning_rate = 0.001
-    batch_size = 250
     weights_by_fold = []
     fold_score = []
 
     for i in range(k):
         print('-'*60)
         print('\nTraining started for fold {}'.format(i+1))
-        print('Batch size: {}, Learning rate: {}'.format(batch_size,learning_rate))
-        final_w, convergence = train(x_training_set[i],y_training_set[i],learning_rate=learning_rate,batch_size=batch_size,max_iter=1000)
+        final_w, convergence = train(x_training_set[i],y_training_set[i],min_learning=0.000001)
         weights_by_fold.append(final_w)
         results, testing_set_mse = test(x_testing_set[i],y_testing_set[i],final_w)
         fold_score.append(np.amin(testing_set_mse))
 
         print('Training completed for fold {} with Test Set MSE: {:.5f}'.format(i+1,testing_set_mse))
-        scatter(convergence,batch_size,learning_rate,i+1,plot=True,save=False,categ='NORMALIZED')
+        scatter(convergence,i+1,plot=True,save=False,categ='NORMALIZED')
         print('\n')
 
     winning_fold = fold_score.index(min(fold_score))
     print('-'*60)
     print('\nBest results were observed while using Fold {}, with Mean Squared Error being minimum at {:.4f}.\n'.format(winning_fold+1,fold_score[winning_fold]))
     print('-'*60)
-
-
-
-    # W = weights_by_fold[winning_fold]
-    # xx, yy = np.meshgrid(range(4), range(4))
-    # fig = plt.figure()
-    # ax = fig.add_subplot(111, projection='3d')
-    # z = (-W[0]*xx - W[1]*yy - W[3])/W[2]
-    # ax.plot_surface(xx, yy, z, color = 'pink',alpha = 0.5)
-    # ax.scatter(x_training_set[winning_fold].T[0],x_training_set[winning_fold].T[1],x_training_set[winning_fold].T[2],label="PCA values", color='blue')
-    # #
-    # # plt.title("Odds and Best Decision Boundaries for : "+companies[c]+
-    # # "\n Evaluation score: "+str(scores[c][1])+"%, achieved from fold: "+str(scores[c][0])+"/"+str(k))
-    # ax.set_xlabel("PCA_1")
-    # ax.set_ylabel("PCA_2")
-    # ax.set_zlabel("PCA_3")
-    # plt.legend()
-    # plt.tight_layout()
-    #
-    # plt.show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    #test(x_testing_set[0],y_testing_set[0],final_w)
