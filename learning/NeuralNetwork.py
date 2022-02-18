@@ -3,9 +3,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 plt.style.use('seaborn-whitegrid')
 import pandas as pd
+import tensorflow as tf
 
 
 DATA_PATH = '../preprocess/housing_normalized.csv'
+
 
 def k_fold_cross_validation(all_inputs,k_fold):
     data_num = len(all_inputs)
@@ -24,43 +26,9 @@ def k_fold_cross_validation(all_inputs,k_fold):
                     training_set[fold] += all_inputs[m:m+each_fold]
     return np.array(training_set),np.array(testing_set)
 
-def hypothesis(x,w):
-    return np.dot(x,w)
-
-def robbins_monro(x,y,w,min_learning):
-    num_data = len(x)
-    learning_rate = 1
-    for k in range(num_data-1):
-        if(learning_rate/(k+1) <= min_learning):
-            return w
-        else:
-            J = y[k+1:k+2]-hypothesis(x[k+1:k+2],w)
-            step = np.multiply(J,x[k+1])
-            step = np.multiply(step,learning_rate/(k+1))
-            w = np.add(w,step)
-    return w
-
-def MSE(x,y,w):
-    return np.sum((y-hypothesis(x,w))**2)/len(x)
-
-def train(x,y,min_learning=0.000001):
-    #Initializing random weights
-    w = np.zeros(len(x.T))
-    w = robbins_monro(x,y,w,min_learning)
-    return w
-
-def predict(x,w):
-    return np.dot(x,w)
-
-def test(x,y,w,show=False):
-    results = predict(x,w)
-    if show:
-        for i,result in enumerate(results):
-            print('Observed value: {:.4f} | Predicted vale" {:.4f}'.format(y[i],result))
-    return results, MSE(x,y,w)
-
-
-
+def show_predictions(observed,predicted):
+    for set in range(len(predicted)):
+        print('Observed value: {:.4f} | Predicted vale" {:.4f}'.format(observed[set],predicted[set]))
 
 if __name__ == '__main__':
 
@@ -82,29 +50,45 @@ if __name__ == '__main__':
     x_training_set,x_testing_set = k_fold_cross_validation(list(x),k)
     y_training_set,y_testing_set = k_fold_cross_validation(list(y),k)
 
-    weights_by_fold = []
-    fold_score = []
+    best_score = None
+    features_num = len(x.T)
+    batch_size = 250
+
 
     for i in range(k):
         print('-'*60)
-        print('\nTraining started for fold {}'.format(i+1))
-        final_w = train(x_training_set[i],y_training_set[i],min_learning=0.000001)
-        weights_by_fold.append(final_w)
-        results, testing_set_mse = test(x_testing_set[i],y_testing_set[i],final_w)
-        fold_score.append(np.amin(testing_set_mse))
+        print('\nTraining started for fold {}\n'.format(i+1))
+        model = tf.keras.models.Sequential()
+        model.add(tf.keras.layers.Dense(features_num*2,kernel_initializer='normal',input_dim=features_num,activation=tf.nn.relu))
+        model.add(tf.keras.layers.Dense(int(features_num*1.3),kernel_initializer='normal',activation=tf.nn.relu))
+        model.add(tf.keras.layers.Dense(features_num//2,kernel_initializer='normal',activation=tf.nn.relu))
+        model.add(tf.keras.layers.Dense(1,kernel_initializer='normal',activation=tf.nn.relu))
+        model.compile(optimizer='adam',
+                     loss='mean_squared_error',
+                     metrics =['mean_squared_error'])
+        history = model.fit(x_training_set[i],y_training_set[i],batch_size=batch_size, epochs=30)
+        mse = history.history['mean_squared_error'][-1]
 
-        print('Training completed for fold {} with Test Set MSE: {:.5f}'.format(i+1,testing_set_mse))
+        if not best_score:
+            best_score = mse
+            winning_fold = i+1
+            testing_predictions = model.predict(x_testing_set[i])
+        elif mse < best_score:
+            best_score = mse
+            winning_fold = i+1
+            testing_predictions = model.predict(x_testing_set[i])
+
+        print('\nTraining completed for fold {} with MSE of: {:.4f}'.format(i+1,mse))
         print('\n')
 
-    winning_fold = fold_score.index(min(fold_score))
     print('-'*60)
-    print('\nBest results were observed while using Fold {}, with Mean Squared Error being minimum at {:.4f}.\n'.format(winning_fold+1,fold_score[winning_fold]))
+    print('\nBest results were observed while using Fold {}, with Mean Squared Error being minimum at {:.4f}.\n'.format(winning_fold,best_score))
     print('-'*60)
 
     while(True):
         ans = input('\nDo you want to see the prediction for every observed value?[y/n]\n')
         if ans == 'y' or ans == 'yes':
-            test(x_testing_set[winning_fold],y_testing_set[winning_fold],weights_by_fold[winning_fold],show=True)
+            show_predictions(y_testing_set[winning_fold],testing_predictions.flatten())
             break
         elif ans == 'n' or ans == 'no':
             print('OK BYEE:)')

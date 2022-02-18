@@ -7,7 +7,7 @@ import pandas as pd
 DATA_PATH = '../preprocess/housing_normalized.csv'
 
 def scatter(data,batch_size,learning_rate,fold='',categ='',plot=True, save=False):
-    path = './MSE_Graphs'
+    path = './Convergence_Graphs'
     if fold:
         path+='/Fold {}'.format(fold)
 
@@ -143,6 +143,16 @@ if __name__ == '__main__':
     print('\nBest results were observed while using Fold {}, with Mean Squared Error being minimum at {:.4f}.\n'.format(winning_fold+1,fold_score[winning_fold]))
     print('-'*60)
 
+    while(True):
+        ans = input('\nDo you want to see the prediction for every observed value?[y/n]\n')
+        if ans == 'y' or ans == 'yes':
+            test(x_testing_set[winning_fold],y_testing_set[winning_fold],weights_by_fold[winning_fold],show=True)
+            break
+        elif ans == 'n' or ans == 'no':
+            print('OK BYEE:)')
+            break
+        else:
+            print("You have to answer yes or no. Let's go again..")
 
 
     # W = weights_by_fold[winning_fold]
