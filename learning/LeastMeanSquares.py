@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 plt.style.use('seaborn-whitegrid')
 import pandas as pd
 
-
-DATA_PATH = '../preprocess/housing_normalized.csv'
+DATASET = 'housing_PCA2'
+DATA_PATH = '../preprocess/{}.csv'.format(DATASET)
 
 def k_fold_cross_validation(all_inputs,k_fold):
     data_num = len(all_inputs)
@@ -23,6 +23,22 @@ def k_fold_cross_validation(all_inputs,k_fold):
                 else:
                     training_set[fold] += all_inputs[m:m+each_fold]
     return np.array(training_set),np.array(testing_set)
+
+def plot_graph(x,y,w,variables,dataset,method='Least Mean Squares'):
+    xx, yy = np.meshgrid(range(2), range(2))
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    z = (w[0]*xx + w[1]*yy + w[2])
+    ax.plot_surface(xx, yy, z, color = 'pink',alpha = 0.5)
+    ax.scatter(x[0],x[1],y, color='blue')
+    plt.title("Prediction plane for dataset: {}\n Using {}".format(dataset,method))
+    ax.set_xlabel(variables['x'])
+    ax.set_ylabel(variables['y'])
+    ax.set_zlabel(variables['z'])
+    plt.legend()
+    plt.tight_layout()
+
+    plt.show()
 
 def hypothesis(x,w):
     return np.dot(x,w)
@@ -111,3 +127,8 @@ if __name__ == '__main__':
             break
         else:
             print("You have to answer yes or no. Let's go again..")
+
+    if(weights_by_fold[winning_fold].shape == (3,)):
+        print('\nPlotting the graph before i go..')
+        variables = {'x':'PCA_1','y':'PCA_2','z':'median_house_value'}
+        plot_graph(x_training_set[winning_fold].T,y_training_set[winning_fold],weights_by_fold[winning_fold],variables,DATASET)

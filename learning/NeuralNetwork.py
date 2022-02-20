@@ -59,14 +59,13 @@ if __name__ == '__main__':
         print('-'*60)
         print('\nTraining started for fold {}\n'.format(i+1))
         model = tf.keras.models.Sequential()
-        model.add(tf.keras.layers.Dense(features_num*2,kernel_initializer='normal',input_dim=features_num,activation=tf.nn.relu))
-        model.add(tf.keras.layers.Dense(int(features_num*1.3),kernel_initializer='normal',activation=tf.nn.relu))
+        model.add(tf.keras.layers.Dense(int(features_num*1.5),kernel_initializer='normal',input_dim=features_num,activation=tf.nn.relu))
         model.add(tf.keras.layers.Dense(features_num//2,kernel_initializer='normal',activation=tf.nn.relu))
         model.add(tf.keras.layers.Dense(1,kernel_initializer='normal',activation=tf.nn.relu))
         model.compile(optimizer='adam',
                      loss='mean_squared_error',
                      metrics =['mean_squared_error'])
-        history = model.fit(x_training_set[i],y_training_set[i],batch_size=batch_size, epochs=30)
+        history = model.fit(x_training_set[i],y_training_set[i],batch_size=batch_size, epochs=20)
         mse = history.history['mean_squared_error'][-1]
 
         if not best_score:

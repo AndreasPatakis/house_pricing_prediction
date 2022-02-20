@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 plt.style.use('seaborn-whitegrid')
 import pandas as pd
 
-DATA_PATH = '../preprocess/housing_normalized.csv'
+DATASET = 'housing_normalized'
+DATA_PATH = '../preprocess/{}.csv'.format(DATASET)
 
 def scatter(data,batch_size,learning_rate,fold='',categ='',plot=True, save=False):
     path = './Convergence_Graphs'
@@ -37,6 +38,22 @@ def scatter(data,batch_size,learning_rate,fold='',categ='',plot=True, save=False
         print("Done!")
     else:
         plt.close()
+
+def plot_graph(x,y,w,variables,dataset,method='Least Squares'):
+    xx, yy = np.meshgrid(range(2), range(2))
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    z = (w[0]*xx + w[1]*yy + w[2])
+    ax.plot_surface(xx, yy, z, color = 'pink',alpha = 0.5)
+    ax.scatter(x[0],x[1],y, color='blue')
+    plt.title("Prediction plane for dataset: {}\n Using {}".format(dataset,method))
+    ax.set_xlabel(variables['x'])
+    ax.set_ylabel(variables['y'])
+    ax.set_zlabel(variables['z'])
+    plt.legend()
+    plt.tight_layout()
+
+    plt.show()
 
 def k_fold_cross_validation(all_inputs,k_fold):
     data_num = len(all_inputs)
@@ -93,9 +110,9 @@ def train(x,y,learning_rate=0.001,batch_size=100,max_iter=1000,max_conv=0.001):
 def predict(x,w):
     return np.dot(x,w)
 
-def test(x,y,w,print=False):
+def test(x,y,w,show=False):
     results = predict(x,w)
-    if print:
+    if show:
         for i,result in enumerate(results):
             print('Observed value: {:.4f} | Predicted vale" {:.4f}'.format(y[i],result))
     return results, MSE(x,y,w)
@@ -135,7 +152,7 @@ if __name__ == '__main__':
         fold_score.append(np.amin(testing_set_mse))
 
         print('Training completed for fold {} with Test Set MSE: {:.5f}'.format(i+1,testing_set_mse))
-        scatter(convergence,batch_size,learning_rate,i+1,plot=True,save=False,categ='NORMALIZED')
+        scatter(convergence,batch_size,learning_rate,i+1,plot=False,save=False,categ='NORMALIZED')
         print('\n')
 
     winning_fold = fold_score.index(min(fold_score))
@@ -155,23 +172,11 @@ if __name__ == '__main__':
             print("You have to answer yes or no. Let's go again..")
 
 
-    # W = weights_by_fold[winning_fold]
-    # xx, yy = np.meshgrid(range(4), range(4))
-    # fig = plt.figure()
-    # ax = fig.add_subplot(111, projection='3d')
-    # z = (-W[0]*xx - W[1]*yy - W[3])/W[2]
-    # ax.plot_surface(xx, yy, z, color = 'pink',alpha = 0.5)
-    # ax.scatter(x_training_set[winning_fold].T[0],x_training_set[winning_fold].T[1],x_training_set[winning_fold].T[2],label="PCA values", color='blue')
-    # #
-    # # plt.title("Odds and Best Decision Boundaries for : "+companies[c]+
-    # # "\n Evaluation score: "+str(scores[c][1])+"%, achieved from fold: "+str(scores[c][0])+"/"+str(k))
-    # ax.set_xlabel("PCA_1")
-    # ax.set_ylabel("PCA_2")
-    # ax.set_zlabel("PCA_3")
-    # plt.legend()
-    # plt.tight_layout()
-    #
-    # plt.show()
+    if(weights_by_fold[winning_fold].shape == (3,)):
+        print('\nPlotting the graph before i go..')
+        variables = {'x':'PCA_1','y':'PCA_2','z':'median_house_value'}
+        plot_graph(x_training_set[winning_fold].T,y_training_set[winning_fold],weights_by_fold[winning_fold],variables,DATASET)
+
 
 
 
