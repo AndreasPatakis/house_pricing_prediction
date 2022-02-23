@@ -52,7 +52,7 @@ if __name__ == '__main__':
 
     best_score = None
     features_num = len(x.T)
-    batch_size = 250
+    batch_size = 100
 
 
     for i in range(k):

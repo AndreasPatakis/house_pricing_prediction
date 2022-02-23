@@ -105,7 +105,7 @@ if __name__ == '__main__':
 
     # #Getting the graph of the combinations
     for combination in scatter_combinations:
-        scatter_features(df,combination,plot=True,save=False)
+        scatter_features(df,combination,plot=False,save=True)
 
     #Getting the graph of the 3-dimensional dataset produced by PCA
-    scatter_features(df_pca,df_pca.columns,plot=True,save=False)
+    scatter_features(df_pca,df_pca.columns,plot=False,save=True)

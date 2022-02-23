@@ -38,6 +38,8 @@ if __name__ == "__main__":
     DATA_PATH = './housing.csv'
 
     df = pd.read_csv(DATA_PATH)
+    #Shuffle the data
+    df = df.sample(frac=1)
     num_of_records = df.shape[0]
     pd.set_option('display.max_columns', None)
     print("\nOur dataframe currently: \n\n{}".format(df.head()))
@@ -66,7 +68,6 @@ if __name__ == "__main__":
             df.loc[df[categ_column]==key,new_columns] = categ_dict[key]
         df.drop([categ_column],axis=1,inplace=True)
         print("\n'{}' categorical attribute replaced by attributes '{}' with resprect to OneHotVector representation.".format(categ_column,', '.join(new_columns)))
-
 
 
     """HANDLING NUMEIRICAL DATA"""
